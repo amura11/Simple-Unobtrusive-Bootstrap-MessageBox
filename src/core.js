@@ -1,17 +1,20 @@
 (function(MessageBox, $, undefined) {
-    defaults = {
+    'use strict';
+    var modalId = '#message-box-modal';
+
+    MessageBox.defaults = {
         buttons: 'close',
         hideTitle: false,
         hideContent: false,
         title: 'Messsage',
         message: null,
         identifier: null,
-        remote: null
+        url: null
     };
 
     // jshint multistr:true
     MessageBox.template = ' \
-        <div id="messagebox-modal" class="modal fade"> \
+        <div id="message-box-modal" class="modal fade"> \
             <div class="modal-dialog"> \
                 <div class="modal-content">\
                     <div class="modal-header"><h4 class="modal-title"></h4></div> \
@@ -27,7 +30,7 @@
 		';
 
     function init() {
-        var messageBox = $('#messagebox-modal');
+        var messageBox = $(modalId);
 
         //Create the message box if it doesn't exist
         if (messageBox.length === 0) {
@@ -42,7 +45,7 @@
     }
 
     function eventHandlers() {
-        $('body').on('click', '[data-toggle="messagebox"]', function(event) {
+        $('body').on('click', '[data-toggle="message-box"]', function(event) {
             var element = $(event.target);
 
             MessageBox.Show({
@@ -50,29 +53,29 @@
                 hideTitle: element.attr('data-hide-title'),
                 message: element.attr('data-message'),
                 identifier: element.attr('data-identifier'),
-                remote: element.attr('data-url')
+                url: element.attr('data-url')
             });
         });
 
         //Show/Hide events
-        $('body').on('shown.bs.modal', '#messagebox-modal', triggerMessageboxEvent.bind(null, 'shown'));
-        $('body').on('hidden.bs.modal', '#messagebox-modal', triggerMessageboxEvent.bind(null, 'hidden'));
+        $('body').on('shown.bs.modal', modalId, triggerMessageboxEvent.bind(null, 'shown'));
+        $('body').on('hidden.bs.modal', modalId, triggerMessageboxEvent.bind(null, 'hidden'));
 
         //Button events
-        $('body').on('click', '#messagebox-modal #ok-button', triggerMessageboxEvent.bind(null, 'ok'));
-        $('body').on('click', '#messagebox-modal #cancel-button', triggerMessageboxEvent.bind(null, 'cancel'));
-        $('body').on('click', '#messagebox-modal #close-button', triggerMessageboxEvent.bind(null, 'close'));
+        $('body').on('click', modalId + ' #ok-button', triggerMessageboxEvent.bind(null, 'ok'));
+        $('body').on('click', modalId + ' #cancel-button', triggerMessageboxEvent.bind(null, 'cancel'));
+        $('body').on('click', modalId + ' #close-button', triggerMessageboxEvent.bind(null, 'close'));
     }
 
     MessageBox.Show = function(options) {
-        var modal = $('#messagebox-modal');
+        var modal = $(modalId);
         var body = modal.find('.modal-body');
         var header = modal.find('.modal-header');
         var footer = modal.find('.modal-footer');
-        var settings = $.extend(defaults, options);
+        var settings = $.extend(MessageBox.defaults, options);
 
-        if (!settings.message || !settings.identifier) {
-            throw "Message and Identifier must be specified";
+        if (!(settings.message || settings.url) || !settings.identifier) {
+            throw "Message or Url and Identifier must be specified";
         }
 
         modal.attr('data-identifier', settings.identifier);
@@ -83,7 +86,7 @@
         header.html(settings.title);
         parseButtonSettings(footer, settings.buttons);
 
-        if (settings.remote) {
+        if (settings.url) {
             loadRemoteContent(body, settings.remote);
         } else {
             body.html(settings.message);
@@ -91,11 +94,11 @@
         }
     };
 
-    function triggerMessageboxEvent(eventName) {
-        var modal = $('#messagebox-modal');
+    function triggerMessageboxEvent(eventName, parameters) {
+        var modal = $(modalId);
         var identifier = modal.attr('data-identifier');
 
-        modal.trigger(eventName + '.messagebox.' + identifier);
+        modal.trigger(eventName + '.message-box.' + identifier, parameters);
     }
 
     function loadRemoteContent(body, url) {
@@ -112,10 +115,17 @@
     function parseButtonSettings(footer, buttons) {
         var buttonsArray = buttons.split(',');
 
-        $('button', footer).hide();
+        //Hide all the buttons and remove any classes
+        $('button', footer).hide().removeClass().addClass('btn');
 
         for (var i = 0; i < buttonsArray.length; i++) {
-            $('#' + buttonsArray[i].trim() + '-button', footer).show();
+        	var buttonConfig = buttonsArray[i].trim().split(':');
+
+            //Determine the button class
+            var buttonClass = buttonConfig[1] ? 'btn-' + buttonConfig[1] : 'btn-default';
+
+            //Show the button and add the class
+            $('#' + buttonConfig[0] + '-button', footer).show().addClass(buttonClass);
         }
     }
 
